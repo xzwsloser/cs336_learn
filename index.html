@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CS336 · 学习笔记</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="site-title" href="./">CS336<span class="dot">·</span>Language Modeling from Scratch</a>
+      <p class="site-subtitle">学习笔记</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="note-grid" class="note-grid" aria-label="笔记列表">
+      <noscript>此页面需要 JavaScript 加载笔记列表。</noscript>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>CS336 Learning Notes · Powered by GitHub Pages</p>
+    </div>
+  </footer>
+
+  <script>
+    fetch('notes.json')
+      .then(function(res) { return res.json(); })
+      .then(function(notes) {
+        var grid = document.getElementById('note-grid');
+        notes.forEach(function(note) {
+          var card = document.createElement('a');
+          card.className = 'note-card';
+          card.href = 'note.html?p=' + encodeURIComponent(note.slug);
+          card.innerHTML =
+            '<div class="card-meta">' +
+              '<span class="card-date">' + note.date + '</span>' +
+            '</div>' +
+            '<h2 class="card-title">' + note.title + '</h2>' +
+            '<p class="card-desc">' + note.description + '</p>' +
+            '<span class="card-link">阅读笔记 →</span>';
+          grid.appendChild(card);
+        });
+      })
+      .catch(function(err) {
+        document.getElementById('note-grid').innerHTML =
+          '<p class="load-error">笔记列表加载失败，请刷新重试。</p>';
+        console.error(err);
+      });
+  </script>
+</body>
+</html>

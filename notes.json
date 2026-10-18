@@ -1,0 +1,8 @@
+[
+  {
+    "slug": "lecture-01",
+    "title": "Lecture 1: 课程概论 & Tokenizer",
+    "date": "2026-10-12",
+    "description": "课程五大模块总览（Basic / System / Scaling Law / Data / Alignment），以及 Tokenizer 基础：BPE、预分词、压缩比与词表构建。"
+  }
+]
