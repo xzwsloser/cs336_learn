@@ -36,25 +36,31 @@
     if (!slug || /[\/\\\.\.]/.test(slug)) {
       container.innerHTML = '<p>无效的笔记路径。</p>';
     } else {
-    marked.setOptions({ gfm: true, breaks: false });
+      if (typeof marked === 'undefined') {
+        container.innerHTML = '<p>Markdown 渲染库加载失败，请刷新重试或检查网络。</p>';
+      } else {
+        marked.setOptions({ gfm: true, breaks: false });
 
-      fetch('notes/' + slug + '.md')
-        .then(function(res) {
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          return res.text();
-        })
-        .then(function(md) {
-          container.innerHTML = marked.parse(md);
-          container.querySelectorAll('pre code').forEach(function(block) {
-            hljs.highlightElement(block);
+        fetch('notes/' + slug + '.md')
+          .then(function(res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.text();
+          })
+          .then(function(md) {
+            container.innerHTML = marked.parse(md);
+            if (typeof hljs !== 'undefined') {
+              container.querySelectorAll('pre code').forEach(function(block) {
+                hljs.highlightElement(block);
+              });
+            }
+            var h1 = container.querySelector('h1');
+            if (h1) document.title = h1.textContent + ' · CS336 学习笔记';
+          })
+          .catch(function(err) {
+            container.innerHTML = '<p>笔记加载失败（' + slug + '.md）：' + err.message + '</p>';
+            console.error(err);
           });
-          var h1 = container.querySelector('h1');
-          if (h1) document.title = h1.textContent + ' · CS336 学习笔记';
-        })
-        .catch(function(err) {
-          container.innerHTML = '<p>笔记加载失败（' + slug + '.md），请确认文件存在。</p>';
-          console.error(err);
-        });
+      }
     }
   </script>
 </body>
