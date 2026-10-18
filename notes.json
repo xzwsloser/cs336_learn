@@ -4,5 +4,11 @@
     "title": "Lecture 1: 课程概论 & Tokenizer",
     "date": "2026-10-12",
     "description": "课程五大模块总览（Basic / System / Scaling Law / Data / Alignment），以及 Tokenizer 基础：BPE、预分词、压缩比与词表构建。"
+  },
+  {
+    "slug": "lecture-02",
+    "title": "Lecture 2: PyTorch & Resource Accounting",
+    "date": "2026-10-18",
+    "description": "浮点精度（FP32/FP16/BF16/FP8）与混合精度训练；FLOPs 计算方式、算术强度、Memory-bound vs Compute-bound、Roofline 模型与激活检查点。"
   }
 ]
