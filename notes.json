@@ -10,5 +10,11 @@
     "title": "Lecture 2: PyTorch & Resource Accounting",
     "date": "2026-10-18",
     "description": "浮点精度（FP32/FP16/BF16/FP8）与混合精度训练；FLOPs 计算方式、算术强度、Memory-bound vs Compute-bound、Roofline 模型与激活检查点。"
+  },
+  {
+    "slug": "lecture-03",
+    "title": "Lecture3: Model Architecture",
+    "date": "2026-10-20",
+    "description": "大部分主流模型都使用 RMSNorm，LayerNorm 的表达能力其实比 RMSNorm 更好(LayerNorm 直接在某一个维度上归一化，但是 RMSNorm 仅仅考虑某一个元素)，但是这个差别不太大，RMSNorm 的一个优点是计算…"
   }
 ]
