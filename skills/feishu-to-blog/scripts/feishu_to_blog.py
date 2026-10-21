@@ -49,6 +49,48 @@ SHEET_RE = re.compile(r"<sheet\b([^>]*?)/?>", re.IGNORECASE | re.DOTALL)
 BITABLE_RE = re.compile(r"<bitable\b([^>]*?)/?>", re.IGNORECASE | re.DOTALL)
 SYNCED_REFERENCE_RE = re.compile(r"<synced_reference\b([^>]*?)/?>", re.IGNORECASE | re.DOTALL)
 HEADING_BOLD_RE = re.compile(r"^(#{1,6})[ \t]+\*\*(.+?)\*\*[ \t]*$", re.MULTILINE)
+GRID_OPEN_RE = re.compile(r"<grid\b([^>]*)>", re.IGNORECASE)
+COLUMN_OPEN_RE = re.compile(r"<column\b([^>]*)>", re.IGNORECASE)
+CSS_COLOR_RE = re.compile(
+    r"^(?:#[0-9a-fA-F]{3,8}|rgba?\([0-9.,%\s]+\)|[A-Za-z][A-Za-z-]*)$"
+)
+
+FEISHU_CALLOUT_COLORS: dict[str, tuple[str, str]] = {
+    "red": ("#fdecec", "#d83931"),
+    "orange": ("#fff3e8", "#de7802"),
+    "yellow": ("#fff8e1", "#dbb100"),
+    "green": ("#e8f7ee", "#2ea121"),
+    "blue": ("#eaf3ff", "#245bdb"),
+    "purple": ("#f3edff", "#6425d0"),
+    "gray": ("#f2f3f5", "#646a73"),
+    "light-red": ("#fdecec", "#f54a45"),
+    "light-orange": ("#fff3e8", "#ff8800"),
+    "light-yellow": ("#fff8e1", "#f5c400"),
+    "light-green": ("#e8f7ee", "#34c759"),
+    "light-blue": ("#eaf3ff", "#3370ff"),
+    "light-purple": ("#f3edff", "#7f3bf5"),
+    "light-gray": ("#f5f6f7", "#8f959e"),
+    "medium-red": ("#fbdcdc", "#d83931"),
+    "medium-orange": ("#ffe2c7", "#de7802"),
+    "medium-yellow": ("#fff0b3", "#dbb100"),
+    "medium-green": ("#d4f2df", "#2ea121"),
+    "medium-blue": ("#d9e7ff", "#245bdb"),
+    "medium-purple": ("#e7dcff", "#6425d0"),
+    "medium-gray": ("#e4e5e8", "#646a73"),
+}
+
+FEISHU_CALLOUT_EMOJI: dict[str, str] = {
+    "info": "ℹ️",
+    "tip": "💡",
+    "note": "📝",
+    "warning": "⚠️",
+    "error": "❌",
+    "success": "✅",
+    "bulb": "💡",
+    "memo": "📝",
+    "exclamation": "❗",
+    "question": "❓",
+}
 
 
 class ConversionError(RuntimeError):
@@ -239,11 +281,134 @@ def _as_blockquote(body: str, prefix: str = "") -> str:
     return "\n\n" + "\n".join(output) + "\n\n"
 
 
+def _find_matching_tag(text: str, start: int, tag: str) -> tuple[int, int] | None:
+    pattern = re.compile(rf"</?{re.escape(tag)}\b[^>]*>", re.IGNORECASE)
+    depth = 1
+    for match in pattern.finditer(text, start):
+        if match.group(0).startswith("</"):
+            depth -= 1
+        else:
+            depth += 1
+        if depth == 0:
+            return match.start(), match.end()
+    return None
+
+
+def _column_ratio(attrs: dict[str, str]) -> float:
+    raw = attrs.get("width-ratio") or attrs.get("width_ratio") or ""
+    try:
+        ratio = float(raw)
+    except (TypeError, ValueError):
+        return 1.0
+    if ratio <= 0 or ratio > 100 or ratio != ratio:
+        return 1.0
+    return ratio
+
+
+def _extract_columns(body: str) -> list[tuple[float, str]]:
+    columns: list[tuple[float, str]] = []
+    cursor = 0
+    while True:
+        match = COLUMN_OPEN_RE.search(body, cursor)
+        if not match:
+            break
+        close = _find_matching_tag(body, match.end(), "column")
+        if close is None:
+            break
+        if not columns and body[: match.start()].strip():
+            columns.append((1.0, body[: match.start()]))
+        columns.append((_column_ratio(parse_attrs(match.group(1))), body[match.end() : close[0]]))
+        cursor = close[1]
+    trailing = body[cursor:].strip()
+    if trailing:
+        columns.append((1.0, trailing))
+    return columns
+
+
+def _grid_repl(body: str) -> str:
+    columns = _extract_columns(body)
+    if not columns:
+        return body
+    track_sizes = " ".join(f"{ratio:.6g}fr" for ratio, _ in columns)
+    output = [f'\n\n<div class="feishu-grid" style="grid-template-columns: {track_sizes};">\n']
+    for _, content in columns:
+        cleaned = content.strip("\n")
+        output.append(f'\n<div class="feishu-column">\n\n{cleaned}\n\n</div>\n')
+    output.append("\n</div>\n\n")
+    return "".join(output)
+
+
+def _replace_grids(text: str) -> str:
+    match = GRID_OPEN_RE.search(text)
+    if not match:
+        return text
+    close = _find_matching_tag(text, match.end(), "grid")
+    if close is None:
+        return text
+    body = _replace_grids(text[match.end() : close[0]])
+    return text[: match.start()] + _grid_repl(body) + _replace_grids(text[close[1] :])
+
+
+def _callout_color(value: str, role: str) -> str | None:
+    key = (value or "").strip().lower()
+    if key in FEISHU_CALLOUT_COLORS:
+        index = 0 if role == "background" else 1
+        return FEISHU_CALLOUT_COLORS[key][index]
+    if key and CSS_COLOR_RE.fullmatch(key):
+        return value.strip()
+    return None
+
+
+def _callout_style(attrs: dict[str, str]) -> str:
+    background = _callout_color(
+        attrs.get("background-color") or attrs.get("background_color") or "",
+        "background",
+    )
+    border = _callout_color(
+        attrs.get("border-color") or attrs.get("border_color") or "",
+        "border",
+    )
+    text = _callout_color(
+        attrs.get("text-color") or attrs.get("text_color") or "",
+        "border",
+    )
+    if background and not border:
+        key = (attrs.get("background-color") or attrs.get("background_color") or "").lower()
+        border = FEISHU_CALLOUT_COLORS.get(key, (background, background))[1]
+    declarations: list[str] = []
+    if background:
+        declarations.append(f"--feishu-callout-bg: {background}")
+    if border:
+        declarations.append(f"--feishu-callout-border: {border}")
+    if text:
+        declarations.append(f"--feishu-callout-text: {text}")
+    if not declarations:
+        return ""
+    return f' style="{html.escape("; ".join(declarations), quote=True)}"'
+
+
+def _callout_emoji(attrs: dict[str, str]) -> str:
+    value = (attrs.get("emoji") or attrs.get("emoji-id") or attrs.get("type") or "").strip()
+    if not value:
+        return ""
+    return FEISHU_CALLOUT_EMOJI.get(value.lower(), value)
+
+
 def _callout_repl(match: re.Match[str]) -> str:
     attrs = parse_attrs(match.group(1))
-    emoji = attrs.get("emoji", "").strip()
-    prefix = f"{emoji} " if emoji else ""
-    return _as_blockquote(match.group(2), prefix=prefix)
+    emoji = _callout_emoji(attrs)
+    icon = (
+        f'<div class="feishu-callout-icon" aria-hidden="true">{html.escape(emoji)}</div>\n'
+        if emoji
+        else ""
+    )
+    body = match.group(2).strip("\n")
+    return (
+        f'\n\n<div class="feishu-callout"{_callout_style(attrs)}>\n'
+        f"{icon}"
+        f'<div class="feishu-callout-body">\n\n{body}\n\n</div>\n'
+        "</div>\n\n"
+    )
 
 
 def _blockquote_repl(match: re.Match[str]) -> str:
@@ -324,10 +489,7 @@ def normalize_feishu_markup(text: str) -> str:
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = text.replace("\ufeff", "").replace("\u200b", "")
 
-    for opening, closing in (("grid", "grid"), ("column", "column")):
-        text = re.sub(rf"<{opening}\b[^>]*>", "\n\n", text, flags=re.IGNORECASE)
-        text = re.sub(rf"</{closing}\s*>", "\n\n", text, flags=re.IGNORECASE)
-
+    text = _replace_grids(text)
     text = CALLOUT_RE.sub(_callout_repl, text)
     text = BLOCKQUOTE_RE.sub(_blockquote_repl, text)
     text = CITE_RE.sub(_cite_repl, text)
@@ -571,7 +733,7 @@ def derive_description(markdown: str) -> str:
         line = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", line)
         line = re.sub(r"<[^>]+>", "", line)
         line = re.sub(r"`([^`]*)`", r"\1", line)
-        line = re.sub(r"\${1,2}[^$]*\${1,2}", "", line)
+        line = re.sub(r"\${1,2}([^$\n]+?)\${1,2}", r"\1", line)
         line = re.sub(r"[*_~>]+", "", line)
         line = re.sub(r"\s+", " ", html.unescape(line)).strip()
         if len(line) < 24 or line.endswith((":", "：")):

@@ -48,7 +48,7 @@ python3 skills/feishu-to-blog/scripts/feishu_to_blog.py \
 
 1. 用 `lark-cli drive +inspect` 解包 Wiki 链接并获取文档类型、标题和 token。
 2. 用 `lark-cli docs +fetch --doc-format markdown` 读取正文。
-3. 把 Feishu callout、grid、cite、whiteboard 等结构转成标准 Markdown。
+3. 把 Feishu callout、grid、cite、whiteboard 等结构转成博客可渲染的 Markdown/HTML；分栏和 callout 图标、配色会保留。
 4. 识别正文中的飞书图片 token，逐个用 `lark-cli docs +media-download` 下载到临时目录，全部成功后再安装到 `assets/images/`。
 5. 生成 `notes/<slug>.md`，把所有图片改成本地相对路径。
 6. 更新 `notes.json`，最后重新校验索引、图片、代码围栏和数学公式分隔符。
@@ -97,6 +97,8 @@ python3 -m http.server 8000
 转换后的 Markdown 必须兼容 `note.html` 当前的渲染链：
 
 - 标题、列表、表格、引用使用标准 Markdown，不保留飞书专有 XML。
+- 分栏使用 `<div class="feishu-grid">` / `<div class="feishu-column">`，栏宽来自 `width-ratio`，窄屏自动堆叠。
+- 提示块使用 `<div class="feishu-callout">`，保留 emoji、背景色和边框色。
 - 行内公式用 `$...$`，独立公式用 `$$...$$`；公式放在代码块外。
 - 代码块保留语言标记，例如 ```python；不要转义围栏本身。
 - 图片用 `assets/images/...` 相对路径；不要依赖飞书临时链接。

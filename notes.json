@@ -16,5 +16,11 @@
     "title": "Lecture3: Model Architecture",
     "date": "2026-10-20",
     "description": "大部分主流模型都使用 RMSNorm，LayerNorm 的表达能力其实比 RMSNorm 更好(LayerNorm 直接在某一个维度上归一化，但是 RMSNorm 仅仅考虑某一个元素)，但是这个差别不太大，RMSNorm 的一个优点是计算…"
+  },
+  {
+    "slug": "lecture-04",
+    "title": "Lecture4: Attention Alternatives&amp;MoE",
+    "date": "2026-10-21",
+    "description": "目前存在的问题是，现代大模型一般需要支持比较长的上下文窗口，但是随着序列最长，Attention 部分的时间复杂度可以达到 O(n^2) ，所以我们需要考虑使用新的注意力架构来降低时间复杂度"
   }
 ]

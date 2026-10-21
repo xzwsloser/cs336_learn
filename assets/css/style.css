@@ -212,6 +212,48 @@ body {
 .markdown-body blockquote p:last-child { margin-bottom: 0; }
 .markdown-body blockquote ol, .markdown-body blockquote ul { margin-bottom: 8px; }
 
+.markdown-body .feishu-grid {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+  margin: 20px 0;
+}
+.markdown-body .feishu-column {
+  min-width: 0;
+}
+.markdown-body .feishu-column > :first-child { margin-top: 0; }
+.markdown-body .feishu-column > :last-child { margin-bottom: 0; }
+.markdown-body .feishu-column img {
+  width: 100%;
+  margin: 0;
+}
+
+.markdown-body .feishu-callout {
+  --feishu-callout-bg: #fff8e1;
+  --feishu-callout-border: #dbb100;
+  --feishu-callout-text: inherit;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 20px 0;
+  padding: 14px 18px;
+  color: var(--feishu-callout-text);
+  background: var(--feishu-callout-bg);
+  border: 1px solid var(--feishu-callout-border);
+  border-radius: 8px;
+}
+.markdown-body .feishu-callout-icon {
+  flex: 0 0 auto;
+  font-size: 1.15rem;
+  line-height: 1.5;
+}
+.markdown-body .feishu-callout-body {
+  flex: 1;
+  min-width: 0;
+}
+.markdown-body .feishu-callout-body > :first-child { margin-top: 0; }
+.markdown-body .feishu-callout-body > :last-child { margin-bottom: 0; }
+
 .markdown-body table {
   width: 100%;
   border-collapse: collapse;
@@ -245,4 +287,8 @@ body {
 @media (max-width: 600px) {
   .markdown-body { padding: 28px 20px 36px; }
   .note-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 720px) {
+  .markdown-body .feishu-grid { grid-template-columns: 1fr !important; }
 }

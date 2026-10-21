@@ -17,12 +17,14 @@
 
 `note.html` 的渲染链是 marked（GFM）、KaTeX 自动渲染、highlight.js。marked 会保留部分 HTML，但飞书专有标签不会被浏览器正确展示，因此转换时必须归一化。
 
+转换后的布局 HTML 依赖 `assets/css/style.css` 中的 `.feishu-grid`、`.feishu-column`、`.feishu-callout` 样式。HTML 容器与内部 Markdown 之间必须保留空行，否则 marked 会把内部 Markdown 当作原始 HTML 文本，不再解析。
+
 ## 2. 标签映射
 
 | 飞书结构 | 目标 Markdown | 说明 |
 | --- | --- | --- |
-| `<callout emoji="🤔">` | `> 🤔 ...` | 每行加 `>`；保留换行；不保留 callout 背景色 |
-| `<grid>` / `<column>` | 删除包裹标签 | 分栏改为顺序图片/段落，避免内容丢失 |
+| `<callout emoji="🤔" background-color="light-blue" border-color="blue">` | `<div class="feishu-callout">…</div>` | 保留 emoji、背景色、边框色和内部 Markdown |
+| `<grid>` / `<column width-ratio="0.5">` | `<div class="feishu-grid">` / `<div class="feishu-column">` | 保留栏数和原始宽度比例；窄屏自动堆叠 |
 | `<cite>` | `[title](https://feishu.cn/...)` | 按 `file-type` 选择 wiki/docx/sheets/base 路径 |
 | `<whiteboard token>` | `![飞书画板](assets/images/...)` | 下载画板缩略图 |
 | `<source token name>` | `[📎 name](https://feishu.cn/file/token)` | 附件保留链接，不承诺本地离线 |
@@ -74,7 +76,7 @@
 ## 5. 代码块与表格
 
 - 代码围栏必须成对，语言标记保留。
-- callout 内出现代码时，每行仍以 `> ` 开头，KaTeX 会忽略 `pre/code`。
+- callout 内容进入 `.feishu-callout-body`，其中仍可使用围栏代码和公式；KaTeX 会忽略 `pre/code`。
 - 飞书表格若已输出标准 Markdown 管道表，直接保留；分隔行必须包含 `---`。
 - 不把 `<sheet>` / `<bitable>` 当作普通 Markdown 表格强行展开，除非用户明确需要数据同步。
 
@@ -118,6 +120,6 @@ rg -n '^```|^\$\$' notes/<slug>.md
 
 - 飞书评论不会进入博客正文。
 - 画板只保留缩略图，不保留可编辑源。
-- 分栏布局线性化，不还原原始并排宽度。
+- 分栏布局保留栏宽比例，但不会复制飞书编辑器的全部像素级间距；窄屏会按阅读顺序堆叠。
 - 嵌入表格、多维表格和同步块转为链接，不复制其数据。
 - 外部图片不做 SSRF 风险下载，只保留远程 URL 并 warning。
