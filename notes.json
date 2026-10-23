@@ -22,5 +22,11 @@
     "title": "Lecture4: Attention Alternatives&amp;MoE",
     "date": "2026-10-21",
     "description": "目前存在的问题是，现代大模型一般需要支持比较长的上下文窗口，但是随着序列最长，Attention 部分的时间复杂度可以达到 O(n^2) ，所以我们需要考虑使用新的注意力架构来降低时间复杂度"
+  },
+  {
+    "slug": "lecture-05",
+    "title": "Lecture5: GPUs、TPUs",
+    "date": "2026-10-23",
+    "description": "GPU/TPU 硬件架构、CUDA 编程与内存模型、Roofline 与低精度/算子融合/重计算优化、合并访存与 tiling，以及 FlashAttention 的分块和 online softmax。"
   }
 ]

@@ -37,8 +37,11 @@ FEISHU_MEDIA_PREFIXES = (
 ATTR_RE = re.compile(
     r"""([A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)')"""
 )
-MD_IMAGE_RE = re.compile(r"!\[([^\]\n]*)\]\((https?://[^)\s]+)\)")
-MD_IMAGE_ANY_RE = re.compile(r'!\[[^\]\n]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)')
+MD_IMAGE_ALT = r"(?:\\.|[^\]\\\n])*"
+MD_IMAGE_RE = re.compile(rf"!\[({MD_IMAGE_ALT})\]\((https?://[^)\s]+)\)")
+MD_IMAGE_ANY_RE = re.compile(
+    rf'!\[(?:{MD_IMAGE_ALT})\]\(([^)\s]+)(?:\s+"[^"]*")?\)'
+)
 HTML_IMAGE_RE = re.compile(r"<img\b([^>]*?)/?>", re.IGNORECASE | re.DOTALL)
 WHITEBOARD_RE = re.compile(r"<whiteboard\b([^>]*?)/?>", re.IGNORECASE | re.DOTALL)
 CALLOUT_RE = re.compile(r"<callout\b([^>]*)>(.*?)</callout\s*>", re.IGNORECASE | re.DOTALL)
@@ -557,7 +560,9 @@ def media_token_from_url(url: str) -> str | None:
 
 
 def _clean_alt(value: str, fallback: str = "图片") -> str:
-    cleaned = re.sub(r"\s+", " ", html.unescape(value or "")).strip()
+    cleaned = html.unescape(value or "")
+    cleaned = re.sub(r"\\([\\`*_{}\[\]()#+\-.!>~])", r"\1", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned[:400] or fallback
 
 
@@ -825,7 +830,7 @@ def validate_markdown_text(text: str, root: Path, slug: str) -> tuple[list[str],
         if re.search(rf"<{tag}\b", text, re.IGNORECASE):
             errors.append(f"unconverted Feishu tag: <{tag}>")
 
-    if re.search(r"!\[[^\]]*\]\([^)]*feishu\.cn/file/", text, re.IGNORECASE):
+    if re.search(r"!\[(?:\\.|[^\]\\\n])*\]\([^)]*feishu\.cn/file/", text, re.IGNORECASE):
         errors.append("Markdown still references a remote Feishu file URL as an image")
 
     for match in MD_IMAGE_ANY_RE.finditer(text):
